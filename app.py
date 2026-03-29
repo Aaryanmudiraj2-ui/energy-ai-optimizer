@@ -1,46 +1,58 @@
-
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-from model import detect_anomalies
 from sklearn.linear_model import LinearRegression
-import numpy as np
 
-st.set_page_config(page_title="AI Energy Optimizer", layout="wide")
-
+# 🔥 1. TITLE (SABSE UPAR)
 st.title("⚡ AI Energy Optimizer")
+st.caption("AI-powered energy optimization for data centers & industries")
 
-# Load data
-df, anomalies = detect_anomalies()
+# 🔥 2. FILE UPLOAD (TITLE KE BAAD)
+uploaded_file = st.file_uploader("📂 Upload Your Energy Data (CSV)", type=["csv", "txt"])
 
-# ---------------- DATA ----------------
-st.subheader("📊 Full Data")
-st.write(df)
-
-st.subheader("🚨 Energy Waste / Anomalies")
-st.write(anomalies)
-
-if not anomalies.empty:
-    st.warning("⚠ High energy usage detected!")
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
 else:
-    st.success("✅ System running efficiently!")
+    st.warning("Please upload your data to continue")
+    st.stop()
 
-# ---------------- GRAPH ----------------
-st.subheader("📈 Power Usage Graph")
+# 🔥 3. DATA SHOW (OPTIONAL)
+st.subheader("📊 Data Preview")
+st.write(df.head())
 
-fig, ax = plt.subplots(figsize=(10,5))
-ax.plot(df['timestamp'], df['power_usage'], marker='o', label="Normal")
+# 🔥 4. FAKE ANOMALY LOGIC (YA TERA EXISTING LOGIC)
+anomalies = df[df['power_usage'] > df['power_usage'].mean()]
 
+# 🔥 5. KPI DASHBOARD
+col1, col2, col3 = st.columns(3)
+
+col1.metric("Total Usage", f"{df['power_usage'].sum():.2f} kW")
+col2.metric("Anomalies", len(anomalies))
+col3.metric("Estimated Savings", f"₹{anomalies['power_usage'].sum()*0.1:.2f}")
+
+# 🔥 6. GRAPH
+st.subheader("📈 Energy Usage Graph")
+st.line_chart(df['power_usage'])
+
+# 🔥 7. AI INSIGHTS
+st.subheader("🧠 AI Insights")
+
+for index, row in anomalies.iterrows():
+    st.write(f"⚠ High usage at {row['timestamp']} → Possible inefficiency")
+
+# 🔥 8. ALERT
 if not anomalies.empty:
-    ax.scatter(anomalies['timestamp'], anomalies['power_usage'], label="Anomaly")
+    st.error("🚨 Immediate Action Required!")
 
-ax.set_title("Power Usage vs Time")
-ax.set_xlabel("Time")
-ax.set_ylabel("Power Usage")
-ax.legend()
-ax.grid(True)
+# 🔥 9. DOWNLOAD REPORT
+csv = df.to_csv(index=False).encode('utf-8')
 
-st.pyplot(fig)
+st.download_button(
+    label="📥 Download Report",
+    data=csv,
+    file_name='energy_report.csv',
+    mime='text/csv',
+)
+
 
 # ---------------- SAVINGS ----------------
 st.subheader("💰 Estimated Savings")
@@ -54,16 +66,22 @@ if not anomalies.empty:
 # ---------------- PREDICTION ----------------
 st.subheader("🔮 Future Prediction")
 
-X = df[['server_load', 'temperature']]
-y = df['power_usage']
-
-model = LinearRegression()
-model.fit(X, y)
-
-future = pd.DataFrame([[85, 30]], columns=['server_load','temperature'])
-prediction = model.predict(future)
-
-st.metric("Predicted Power Usage", f"{prediction[0]:.2f} kW")
+ # --- PREDICTION LOGIC ---
+if 'voltage' in df.columns and 'temperature' in df.columns:
+    # Humne server_load ki jagah voltage use kiya hai
+    X = df[['voltage', 'temperature']] 
+    y = df['power_usage']
+    
+    model = LinearRegression()
+    model.fit(X, y)
+    
+    # Prediction (Next prediction ke liye voltage 230 aur temp 30 maana hai)
+    future = pd.DataFrame([[230, 30]], columns=['voltage', 'temperature'])
+    prediction = model.predict(future)
+    st.write(f"Predicted Power Usage: {prediction[0]:.2f} units")
+else:
+    st.error("❌ Error: CSV file mein columns match nahi ho rahe!")
+    st.info(f"Aapki file mein ye columns hain: {list(df.columns)}")
 
 # ---------------- COST ----------------
 st.subheader("💰 Cost Analysis")
